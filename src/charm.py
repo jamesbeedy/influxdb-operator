@@ -3,11 +3,15 @@
 """InfluxDBOperator."""
 
 import logging
-from typing import Any, Dict, Union
+import urllib.error
+import urllib.request
+from typing import Union
 
 import ops
-import influx_ops
 
+import influx_ops
+from constants import INFLUXDB_PEER, INFLUXDB_PORT
+from exceptions import IngressAddressUnavailableError
 
 logger = logging.getLogger(__name__)
 
@@ -28,9 +32,17 @@ class InfluxDBOperator(ops.CharmBase):
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
 
+    @property
+    def _ingress_address(self) -> str:
+        """Return the ingress_address from the peer relation if it exists."""
+        if (peer_binding := self.model.get_binding(INFLUXDB_PEER)) is not None:
+            ingress_address = f"{peer_binding.network.ingress_address}"
+            logger.debug(f"Influxdb ingress_address: {ingress_address}")
+            return ingress_address
+        raise IngressAddressUnavailableError("Ingress address unavailable")
+
     def _on_install(self, event: ops.InstallEvent) -> None:
         """Perform installation operations for system level dependencies."""
-
         self.unit.status = ops.WaitingStatus("Installing base system dependencies.")
         logger.debug("Installing base dependencies.....")
         try:
@@ -45,6 +57,7 @@ class InfluxDBOperator(ops.CharmBase):
 
     def _on_start(self, event: ops.StartEvent) -> None:
         """Handle start hook operations."""
+        self.unit.open_port("tcp", INFLUXDB_PORT)
         self.unit.set_workload_version(influx_ops.version())
 
     def _on_config_changed(self, event: ops.ConfigChangedEvent) -> None:
@@ -61,8 +74,22 @@ class InfluxDBOperator(ops.CharmBase):
         ],
     ) -> None:
         """Handle update status."""
-        self.unit.status = ActiveStatus()
+        status_code = int()
+        req = urllib.request.Request(f"http://{self._ingress_address}:{INFLUXDB_PORT}/ping")
+
+        try:
+            with urllib.request.urlopen(req) as res:
+                status_code = res.getcode()
+        except urllib.error.HTTPError:
+            status_code = 0
+
+        if status_code == 204:
+            self.unit.status = ops.ActiveStatus()
+        else:
+            self.unit.status = ops.BlockedStatus(
+                "InfluxDB is not accepting connections, please debug."
+            )
 
 
 if __name__ == "__main__":  # pragma: nocover
-    main.main(InfluxDBOperator)
+    ops.main(InfluxDBOperator)

@@ -1,13 +1,15 @@
 #!/usr/bin/python3
+
+"""influx_ops."""
+
 import logging
 import subprocess
 
 import charms.operator_libs_linux.v0.apt as apt
 
-
 _logger = logging.getLogger(__name__)
 
-INFLUX_PACKAGES = ["influxdb", "influx-client"]
+INFLUX_PACKAGES = ["influxdb", "influxdb-client"]
 
 
 class InfluxOpsError(RuntimeError):
@@ -38,6 +40,7 @@ def install() -> None:
         raise InfluxOpsError(
             f"failed to install influxdb packages `{INFLUX_PACKAGES}`. reason: {e}"
         )
+
 
 def version() -> str:
     """Get the current version of `influxdb` installed on the unit.

@@ -44,12 +44,21 @@ env: lock
 upgrade:
     uv lock --upgrade
 
+# Run charmcraft pack
+pack:
+    #!/usr/bin/env bash
+    set -euxo pipefail
+
+    charmcraft -v pack
+    mv influxdb_*.charm influxdb.charm
+ 
+
 # Generate publishing token for Charmhub
 [group("dev")]
 generate-token:
     charmcraft login \
         --export=.charmhub.secret \
-        --charm=apptainer \
+        --charm=influxdb \
         --permission=package-manage-metadata \
         --permission=package-manage-releases \
         --permission=package-manage-revisions \
@@ -98,8 +107,8 @@ integration *args: lock
     set -euxo pipefail
 
     charmcraft -v pack
-    mv apptainer_*.charm apptainer.charm
-    export LOCAL_APPTAINER={{project_dir / "apptainer.charm"}}
+    mv influxdb_*.charm influxdb.charm
+    export LOCAL_APPTAINER={{project_dir / "influxdb.charm"}}
     {{uv_run}} pytest \
         -v \
         --tb native \
