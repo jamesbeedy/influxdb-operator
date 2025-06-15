@@ -1,10 +1,9 @@
 [project]
-name = "influxdb-operator"
+name = "influxdb-client"
 version = "0.0"
 requires-python = ">=3.12"
 dependencies = [
     "ops ~= 2.22",
-    "influxdb",
 ]
 
 [project.optional-dependencies]

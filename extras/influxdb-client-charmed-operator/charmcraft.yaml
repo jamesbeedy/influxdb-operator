@@ -1,11 +1,11 @@
 # Copyright (c) 2025 Vantage Compute Corporation
 # See LICENSE file for licensing details.
-name: influxdb
+name: influxdb-client
 summary: |
-  Influxdb operator charm.
+  Influxdb client charm.
 
 description: |
-  This charm provides influxdb.
+  This charm provides influxdb client.
 
 links:
   contact: https://matrix.to/#/#hpc:ubuntu.com
@@ -19,9 +19,7 @@ links:
 assumes:
 - juju
 
-charm-libs:
-  - lib: operator_libs_linux.apt
-    version: "0"
+subordinate: true
 
 type: charm
 platforms:
@@ -34,21 +32,22 @@ parts:
     build-snaps:
       - astral-uv
 
-peers:
-  influxdb-peer:
-    interface: influxdb-peer
 
-provides:
+requires:
   influxdb:
     interface: influxdb
+    scope: container
+#  juju-info:
+#    interface: juju-info
+#    scope: container
 
 actions:
-  get-admin-password:
+  get-influxdb-creds:
     description: |
-      Display the administrator password.
+      Display the influxdb client password.
 
       Example usage:
 
       ```bash
-      juju run openldap/leader get-admin-password
+      juju run influxdb-client/leader get-influx-creds
       ```

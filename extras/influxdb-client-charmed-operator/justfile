@@ -50,7 +50,7 @@ pack:
     set -euxo pipefail
 
     charmcraft -v pack
-    mv influxdb_*.charm influxdb.charm
+    mv influxdb-client_*.charm influxdb-client.charm
  
 
 # Generate publishing token for Charmhub
@@ -107,7 +107,7 @@ integration *args: lock
     set -euxo pipefail
 
     charmcraft -v pack
-    mv influxdb_*.charm influxdb.charm
+    mv influxdb-client_*.charm influxdb-client.charm
     export LOCAL_INFLUXDB={{project_dir / "influxdb.charm"}}
     {{uv_run}} pytest \
         -v \
