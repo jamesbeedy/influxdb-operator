@@ -11,10 +11,10 @@ links:
   contact: https://matrix.to/#/#hpc:ubuntu.com
 
   issues:
-    - https://github.com/charmed-hpc/slurm-charms/issues
+    - https://github.com/charmed-hpc/influxdb-operator/issues
 
   source:
-    - https://github.com/charmed-hpc/slurm-charms
+    - https://github.com/charmed-hpc/influxdb-operator
 
 assumes:
 - juju
@@ -44,14 +44,7 @@ provides:
 
 actions:
   get-admin-password:
-    description: |
-      Display the administrator password.
-
-      Example usage:
-
-      ```bash
-      juju run influxdb/leader get-admin-password
-      ```
+    description: Display the administrator password.
 
   get-user-password:
     description: Get a users password InfluxDB.
@@ -145,4 +138,3 @@ actions:
         type: string
         description: The name of the user to give permissions to.
     required: [username]
-

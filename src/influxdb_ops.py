@@ -6,7 +6,7 @@ import logging
 import secrets
 import subprocess
 from shutil import copy2
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import charms.operator_libs_linux.v0.apt as apt
 from influxdb import InfluxDBClient
@@ -57,7 +57,7 @@ class InfluxDBOps:
             password=self._charm.influxdb_admin_password,
         )
 
-    def create_user(self, influxdb_username: str) -> Optional[Dict[str, str]]:
+    def create_user(self, influxdb_username: str) -> Dict[str, str]:
         """Create an influxdb user."""
         client = self._influxdb_admin_client()
 
@@ -80,7 +80,7 @@ class InfluxDBOps:
         client = self._influxdb_admin_client()
 
         try:
-            client.drop_user(influxdb_user)
+            client.drop_user(influxdb_username)
         except Exception:
             msg = "Error dropping user."
             _logger.error(msg)
@@ -112,7 +112,7 @@ class InfluxDBOps:
         # Database
         client = self._influxdb_admin_client()
         try:
-            client.database(influxdb_database)
+            client.create_database(influxdb_database)
         except Exception:
             msg = "Error creating database."
             _logger.error(msg)
@@ -160,7 +160,7 @@ class InfluxDBOps:
 
         databases = []
         try:
-            databases = client.get_list_databases()
+            databases = client.get_list_database()
         except Exception:
             msg = "Error listing databases."
             _logger.error(msg)
@@ -172,22 +172,22 @@ class InfluxDBOps:
         return databases
 
     def grant_privilege(
-        self, influxdb_username: str, influxdb_database: str, permission: str = "all"
+        self, influxdb_username: str, influxdb_database: str, privilege: str = "all"
     ) -> None:
         """Grant an influxdb user permissions on a database."""
         client = self._influxdb_admin_client()
 
         try:
-            client.grant_privilege("all", influxdb_database, influxdb_username)
+            client.grant_privilege(privilege, influxdb_database, influxdb_username)
         except Exception:
-            msg = f"Error granting {permissions} to {influxdb_user} on {influxdb_database}."
+            msg = f"Error granting {privilege} to {influxdb_username} on {influxdb_database}."
             _logger.error(msg)
             raise InfluxDBOpsError(msg)
         finally:
             client.close()
 
         _logger.debug(
-            f"Successfully granted {permissions} to {influxdb_user} on {influxdb_database}."
+            f"Successfully granted {privilege} to {influxdb_username} on {influxdb_database}."
         )
 
     def revoke_privilege(
@@ -199,14 +199,14 @@ class InfluxDBOps:
         try:
             client.revoke_privilege(privilege, influxdb_database, influxdb_username)
         except Exception:
-            msg = f"Error revoking {privilege} from {influxdb_user} on {influxdb_database}."
+            msg = f"Error revoking {privilege} from {influxdb_username} on {influxdb_database}."
             _logger.error(msg)
             raise InfluxDBOpsError(msg)
         finally:
             client.close()
 
         _logger.debug(
-            f"Successfully revoked {privilege} to {influxdb_user} on {influxdb_database}."
+            f"Successfully revoked {privilege} to {influxdb_username} on {influxdb_database}."
         )
 
     def list_privileges(self, influxdb_username: str) -> list:
@@ -237,7 +237,7 @@ class InfluxDBOps:
             user_pass = self.create_user(influxdb_username)
             self.create_database(influxdb_database)
             self.grant_privilege(influxdb_username, influxdb_database)
-            _logger.debug(f"Create user password updated successfully.")
+            _logger.debug("Create user password updated successfully.")
         except Exception:
             msg = "Error creating user and database."
             _logger.error(msg)
@@ -247,11 +247,11 @@ class InfluxDBOps:
 
         return user_pass
 
-    def update_user_password(self, influxdb_username: str, influxdb_password: str) -> str:
+    def update_user_password(self, influxdb_username: str, influxdb_password: str) -> None:
         """Create the influxdb admin user."""
         client = self._influxdb_admin_client()
         try:
-            client.update_password(influxdb_username, influxdb_password)
+            client.set_user_password(influxdb_username, influxdb_password)
             _logger.debug("User password updated successfully.")
         except Exception:
             msg = "Error updating user password."
@@ -266,6 +266,7 @@ class InfluxDBOps:
         password = secrets.token_urlsafe(32)
         self.update_user_password(INFLUXDB_ADMIN_USERNAME, password)
         return password
+
 
 def install() -> None:
     """Install `influxdb`.
@@ -301,7 +302,7 @@ def version() -> str:
         raise InfluxDBOpsError(f"failed to get the version of `influxdb` installed. reason: {e}")
 
 
-def write_influxdb_configuration_and_restart_service():
+def write_influxdb_configuration_and_restart_service() -> None:
     """Write InfluxDB config and restart the service."""
-    copy2("./templates/influxdb.conf", "/etc/influxdb/influxdb.conf")
+    copy2("./src/templates/influxdb.conf", "/etc/influxdb/influxdb.conf")
     subprocess.run(["systemctl", "restart", "influxdb"])
