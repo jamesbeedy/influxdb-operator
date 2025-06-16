@@ -3,9 +3,6 @@
 """InfluxDBOperator."""
 
 import logging
-import urllib.error
-import urllib.request
-from typing import Union
 
 import ops
 
@@ -44,7 +41,7 @@ class InfluxDBOperator(ops.CharmBase):
         self._stored.set_default(influx_installed=False)
 
         self.influxdb_ops = InfluxDBOps(self)
-        self._influxdb = InfluxDB(self, "influxdb")
+        self._influxdb_interface = InfluxDB(self, "influxdb")
 
         event_handler_bindings = {
             self.on.install: self._on_install,
@@ -100,9 +97,6 @@ class InfluxDBOperator(ops.CharmBase):
             event.defer()
             return
 
-        from time import sleep
-
-        sleep(10)
         logger.debug("Creating influxdb admin user.")
 
         admin_password = create_influxdb_admin_user()
@@ -117,33 +111,16 @@ class InfluxDBOperator(ops.CharmBase):
         write_influxdb_configuration_and_restart_service()
 
         self._stored.influxdb_installed = True
-        self._on_update_status(event)
+        self._on_update_status()
 
     def _on_start(self, event: ops.StartEvent) -> None:
         """Handle start hook operations."""
         self.unit.open_port("tcp", int(INFLUXDB_PORT))
         self.unit.set_workload_version(influxdb_version())
 
-    def _on_update_status(
-        self,
-        event: Union[
-            ops.ConfigChangedEvent,
-            ops.UpdateStatusEvent,
-            ops.InstallEvent,
-            ops.StartEvent,
-        ],
-    ) -> None:
-        """Handle update status."""
-        status_code = int()
-        req = urllib.request.Request(f"http://{self.ingress_address}:{INFLUXDB_PORT}/ping")
-
-        try:
-            with urllib.request.urlopen(req) as res:
-                status_code = res.getcode()
-        except urllib.error.HTTPError:
-            status_code = 0
-
-        if status_code == 204:
+    def _on_update_status(self) -> None:
+        """Update the charm status based on influxdb health."""
+        if influxdb_version():
             self.unit.status = ops.ActiveStatus()
         else:
             self.unit.status = ops.BlockedStatus(

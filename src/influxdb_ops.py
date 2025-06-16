@@ -19,6 +19,33 @@ _logger = logging.getLogger(__name__)
 INFLUX_PACKAGES = ["influxdb", "influxdb-client"]
 
 
+def install() -> None:
+    """Install `influxdb`.
+
+    Raises:
+        InfluxDBOpsError: Raised if `apt` fails to install `influxdb` on the unit.
+
+    Notes:
+        This function uses the `influxdb` packages hosted within the
+        upstream InfluxDB PPA located at https://repos.influxdata.com/ubuntu.
+    """
+    try:
+        apt.update()
+        _logger.info("installing packages `%s` using apt", INFLUX_PACKAGES)
+        apt.add_package(INFLUX_PACKAGES)
+        _logger.info("packages `%s` successfully installed on unit", INFLUX_PACKAGES)
+    except (apt.PackageNotFoundError, apt.PackageError) as e:
+        raise InfluxDBOpsError(
+            f"failed to install influxdb packages `{INFLUX_PACKAGES}`. reason: {e}"
+        )
+
+
+def write_influxdb_configuration_and_restart_service() -> None:
+    """Write InfluxDB config and restart the service."""
+    copy2("./src/templates/influxdb.conf", "/etc/influxdb/influxdb.conf")
+    subprocess.run(["systemctl", "restart", "influxdb"])
+
+
 def create_influxdb_admin_user() -> str:
     """Create the influxdb admin user."""
     client = InfluxDBClient(host="localhost", port=8086)
@@ -31,6 +58,20 @@ def create_influxdb_admin_user() -> str:
     finally:
         client.close()
     return admin_password
+
+
+def version() -> str:
+    """Test influxdb health by using the ping command to return the version."""
+    client = InfluxDBClient(host="localhost", port=8086)
+    vers = ""
+    try:
+        vers = client.ping()
+        _logger.debug(f"InfluxDB healthy. Running version: {version}.")
+    except Exception:
+        print("Error creating admin user.")
+    finally:
+        client.close()
+    return vers
 
 
 class InfluxDBOpsError(RuntimeError):
@@ -266,43 +307,3 @@ class InfluxDBOps:
         password = secrets.token_urlsafe(32)
         self.update_user_password(INFLUXDB_ADMIN_USERNAME, password)
         return password
-
-
-def install() -> None:
-    """Install `influxdb`.
-
-    Raises:
-        InfluxDBOpsError: Raised if `apt` fails to install `influxdb` on the unit.
-
-    Notes:
-        This function uses the `influxdb` packages hosted within the
-        upstream InfluxDB PPA located at https://repos.influxdata.com/ubuntu.
-    """
-    try:
-        apt.update()
-        _logger.info("installing packages `%s` using apt", INFLUX_PACKAGES)
-        apt.add_package(INFLUX_PACKAGES)
-        _logger.info("packages `%s` successfully installed on unit", INFLUX_PACKAGES)
-    except (apt.PackageNotFoundError, apt.PackageError) as e:
-        raise InfluxDBOpsError(
-            f"failed to install influxdb packages `{INFLUX_PACKAGES}`. reason: {e}"
-        )
-
-
-def version() -> str:
-    """Get the current version of `influxdb` installed on the unit.
-
-    Raises:
-        InfluxOpsError: Raised if `influxdb` is not installed on unit.
-    """
-    try:
-        result = subprocess.check_output(["influx", "--version"], text=True)
-        return result.split()[-1]
-    except (FileNotFoundError, subprocess.CalledProcessError) as e:
-        raise InfluxDBOpsError(f"failed to get the version of `influxdb` installed. reason: {e}")
-
-
-def write_influxdb_configuration_and_restart_service() -> None:
-    """Write InfluxDB config and restart the service."""
-    copy2("./src/templates/influxdb.conf", "/etc/influxdb/influxdb.conf")
-    subprocess.run(["systemctl", "restart", "influxdb"])
