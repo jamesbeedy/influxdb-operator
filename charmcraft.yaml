@@ -50,5 +50,99 @@ actions:
       Example usage:
 
       ```bash
-      juju run openldap/leader get-admin-password
+      juju run influxdb/leader get-admin-password
       ```
+
+  get-user-password:
+    description: Get a users password InfluxDB.
+    params:
+      username:
+        type: string
+        description: The username whos password to retrieve.
+    required: [username]
+
+  update-user-password:
+    description: Update a users password in InfluxDB.
+    params:
+      username:
+        type: string
+        description: The name of the user whos password to update.
+      password:
+        type: string
+        description: The new password.
+    required: [username, password]
+
+  create-user:
+    description: Create a user in InfluxDB.
+    params:
+      username:
+        type: string
+        description: The name of the user to create.
+    required: [username]
+
+  drop-user:
+    description: Delete a user in InfluxDB.
+    params:
+      username:
+        type: string
+        description: The name of the user to delete.
+    required: [username]
+
+  list-users:
+    description: List users in InfluxDB.
+ 
+  create-database:
+    description: Create a database in InfluxDB.
+    params:
+      database:
+        type: string
+        description: The name of the database to create.
+    required: [database]
+
+  drop-database:
+    description: Delete a database in InfluxDB.
+    params:
+      database:
+        type: string
+        description: The name of the database to delete.
+    required: [database]
+
+  list-databases:
+    description: List databases in InfluxDB.
+
+  grant-privilege:
+    description: Grant a user privilege on a database.
+    params:
+      username:
+        type: string
+        description: The name of the user to give permissions to.
+      database:
+        type: string
+        description: The name of the database to give the user permissions to.
+      permission:
+        type: string
+        enum: [all, read, write]
+    required: [username, database, permission]
+
+  revoke-privilege:
+    description: Revoke a users privilege on a database.
+    params:
+      username:
+        type: string
+        description: The name of the user to give permissions to.
+      database:
+        type: string
+        description: The name of the database to give the user permissions to.
+      permission:
+        type: string
+        enum: [all, read, write]
+    required: [username, database, permission]
+
+  list-privileges:
+    description: List a users privilege on a database.
+    params:
+      username:
+        type: string
+        description: The name of the user to give permissions to.
+    required: [username]
+
