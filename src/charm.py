@@ -38,7 +38,7 @@ class InfluxDBOperator(ops.CharmBase):
         """Init _stored attributes and interfaces, observe events."""
         super().__init__(*args, **kwargs)
 
-        self._stored.set_default(influx_installed=False)
+        self._stored.set_default(influxdb_installed=False)
 
         self.influxdb_ops = InfluxDBOps(self)
         self._influxdb_interface = InfluxDB(self, "influxdb")
@@ -111,14 +111,18 @@ class InfluxDBOperator(ops.CharmBase):
         write_influxdb_configuration_and_restart_service()
 
         self._stored.influxdb_installed = True
-        self._on_update_status()
+        self._check_status()
 
     def _on_start(self, event: ops.StartEvent) -> None:
         """Handle start hook operations."""
         self.unit.open_port("tcp", int(INFLUXDB_PORT))
         self.unit.set_workload_version(influxdb_version())
 
-    def _on_update_status(self) -> None:
+    def _on_update_status(self, event: ops.UpdateStatusEvent) -> None:
+        """Update the charm status hook event handler."""
+        self._check_status()
+
+    def _check_status(self) -> None:
         """Update the charm status based on influxdb health."""
         if influxdb_version():
             self.unit.status = ops.ActiveStatus()

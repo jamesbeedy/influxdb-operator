@@ -35,9 +35,7 @@ def install() -> None:
         apt.add_package(INFLUX_PACKAGES)
         _logger.info("packages `%s` successfully installed on unit", INFLUX_PACKAGES)
     except (apt.PackageNotFoundError, apt.PackageError) as e:
-        raise InfluxDBOpsError(
-            f"failed to install influxdb packages `{INFLUX_PACKAGES}`. reason: {e}"
-        )
+        raise InfluxDBOpsError("Failed to install InfluxDB.")
 
 
 def write_influxdb_configuration_and_restart_service() -> None:
